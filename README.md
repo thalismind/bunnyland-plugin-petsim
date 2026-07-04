@@ -1,7 +1,6 @@
 # Bunnyland Petsim
 
-Out-of-tree [Bunnyland](https://github.com/thalismind/bunnyland-server) plugin: a
-Sims-4-expansion-sized **companions & creatures** pack. Wild animals can be tamed into loyal
+Out-of-tree [Bunnyland](https://github.com/thalismind/bunnyland-server) plugin: an expansion-pack-sized **companions & creatures** pack. Wild animals can be tamed into loyal
 pets that follow their owner from room to room, bond over food and attention, perform
 tricks, and react to danger.
 
