@@ -24,7 +24,7 @@ from .events import (
 from .fragments import petsim_fragments
 from .install import install_petsim
 
-PLUGIN_ID = "bunnyland_petsim"
+PLUGIN_ID = "bunnyland.petsim"
 
 
 def plugin() -> Plugin:
