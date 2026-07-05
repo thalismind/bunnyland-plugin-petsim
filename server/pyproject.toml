@@ -1,7 +1,7 @@
 [project]
 name = "bunnyland-petsim"
-version = "0.1.0"
-description = "Out-of-tree Bunnyland plugin: a companions & creatures pack (taming, following pets, bonding, tricks)."
+version = "0.2.0"
+description = "Out-of-tree Bunnyland plugin: a companions & creatures pack (mounts & riding, training, pet-care, taming, tricks)."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

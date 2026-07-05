@@ -25,6 +25,7 @@ from bunnyland.mechanics.social import adjust_bond, bond_between
 from .components import PetComponent, TameableComponent
 from .edges import set_owner
 from .events import PetTamedEvent
+from .knowledge import known_species_bonus
 from .spatial import room_of
 
 #: Affinity gained per taming attempt (halved for skittish creatures).
@@ -56,6 +57,8 @@ class TameHandler:
 
         tameable = creature.get_component(TameableComponent)
         step = SKITTISH_AFFINITY_STEP if tameable.skittish else TAME_AFFINITY_STEP
+        # Optional loresim synergy: knowing the species eases the taming (0.0 sans loresim).
+        step += known_species_bonus(ctx.world, character_id, tameable.species)
         bond = adjust_bond(
             ctx.world, creature_id, character_id, {"affinity": step, "trust": step / 2}
         )
