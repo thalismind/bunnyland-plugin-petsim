@@ -38,8 +38,8 @@ from bunnyland.core.handlers import (
     require_character,
     require_reachable_entity,
 )
-from bunnyland.mechanics.meter import Meter, band, changed
-from bunnyland.mechanics.social import adjust_bond
+from bunnyland.foundation.meters.mechanics import Meter, band, changed
+from bunnyland.foundation.social.mechanics import adjust_bond
 from pydantic.dataclasses import dataclass
 from relics import Component, Edge, Entity, EntityId, World
 

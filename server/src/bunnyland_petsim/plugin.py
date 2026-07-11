@@ -14,7 +14,7 @@ from bunnyland.plugins import (
 from .commands import PET_ACTION_DEFINITIONS, PET_ACTION_HANDLERS
 from .components import PetComponent, TameableComponent
 from .edges import Follows
-from .enrichment import PetWorldgenHook
+from .enrichment import PetGenerationEnricher
 from .events import (
     DismountedEvent,
     MountedEvent,
@@ -36,7 +36,7 @@ from .mounts import MountComponent, RiddenBy
 from .petcare import PetCareComponent, petcare_fragments
 from .tracking import TrackerComponent, tracking_fragments
 from .training import TrainingComponent
-from .worldgen import MountWorldgenHook
+from .worldgen import MountGenerationEnricher
 
 PLUGIN_ID = "bunnyland.petsim"
 
@@ -85,7 +85,10 @@ def plugin() -> Plugin:
         runtime=RuntimeContribution(service_factories=(install_petsim,)),
         content=ContentContribution(
             prompt_fragments=(petsim_fragments, petcare_fragments, tracking_fragments),
-            worldgen_hooks=(PetWorldgenHook, MountWorldgenHook),
+            generation_enrichers=(
+                PetGenerationEnricher(),
+                MountGenerationEnricher(),
+            ),
         ),
     )
 

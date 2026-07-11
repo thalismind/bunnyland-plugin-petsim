@@ -21,7 +21,7 @@ from dataclasses import replace
 
 from bunnyland.core.ecs import contents, replace_component
 from bunnyland.core.events import DomainEvent, EventVisibility, event_base
-from bunnyland.mechanics.storyteller import IncidentComponent
+from bunnyland.foundation.storyteller.mechanics import IncidentComponent
 from relics import Entity, World
 
 from .components import RELOCATING_MODES, STAY, PetComponent, clamp_happiness

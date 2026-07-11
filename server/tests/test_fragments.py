@@ -12,7 +12,7 @@ from bunnyland.core import (
     spawn_entity,
 )
 from bunnyland.core.ecs import replace_component
-from bunnyland.mechanics.social import adjust_bond
+from bunnyland.foundation.social.mechanics import adjust_bond
 
 from bunnyland_petsim import PetComponent, petsim_fragments, spawn_pet
 

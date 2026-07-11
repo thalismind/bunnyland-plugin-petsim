@@ -13,8 +13,8 @@ from bunnyland.core import (
 )
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
-from bunnyland.mechanics.meter import Meter, band
-from bunnyland.mechanics.social import bond_between
+from bunnyland.foundation.meters.mechanics import Meter, band
+from bunnyland.foundation.social.mechanics import bond_between
 
 from bunnyland_petsim import (
     GroomPetHandler,
@@ -205,9 +205,7 @@ def test_care_lines_only_when_a_meter_asks():
     calm = spawn_pet(actor.world, species="cat")
     calm.add_component(PetCareComponent())
     assert care_lines(calm) == []
-    pet.add_component(
-        PetCareComponent(play_need=Meter(value=60.0), grooming=Meter(value=60.0))
-    )
+    pet.add_component(PetCareComponent(play_need=Meter(value=60.0), grooming=Meter(value=60.0)))
     lines = care_lines(pet)
     assert any("restless" in line for line in lines)
     assert any("scruffy" in line for line in lines)

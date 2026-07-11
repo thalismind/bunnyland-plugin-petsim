@@ -13,9 +13,9 @@ from bunnyland.core import (
     WorldActor,
     spawn_entity,
 )
-from bunnyland.core.components import GenerationIntentComponent
-from bunnyland.core.events import CharacterGeneratedEvent, event_base
-from bunnyland.plugins import apply_plugins, load_modules
+from bunnyland.core.generation import GenerationRequest
+from bunnyland.plugins import apply_plugins
+from bunnyland.worldgen import CharacterSpec, RoomSpec, WorldProposal, instantiate
 from pydantic.dataclasses import dataclass
 from relics import Component
 
@@ -40,6 +40,7 @@ from bunnyland_petsim import (
     tracking_fragments,
 )
 from bunnyland_petsim.knowledge import TAMING_KNOWLEDGE_BONUS
+from bunnyland_petsim.plugin import bunnyland_plugins as _plugins
 from bunnyland_petsim.spatial import room_of
 from bunnyland_petsim.tracking import contents_or_empty
 from bunnyland_petsim.worldgen import MOUNT_TERMS
@@ -207,91 +208,48 @@ def test_taming_folds_in_the_knowledge_bonus(monkeypatch):
 # --------------------------------------------------------------------------------------
 
 
-def _publish(actor, event):
-    asyncio.run(actor.bus.publish(event))
-
-
-def _generated(actor, *, tags=(), description="", name="beast"):
-    entity = spawn_entity(
-        actor.world, [IdentityComponent(name=name, kind="character"), CharacterComponent()]
+def _generated(*, tags=(), description="", name="beast"):
+    actor = WorldActor()
+    apply_plugins(_plugins(), actor)
+    result = asyncio.run(
+        instantiate(
+            actor,
+            WorldProposal(
+                seed="seed",
+                rooms=[RoomSpec(key="room", title="Room")],
+                characters=[
+                    CharacterSpec(
+                        key="npc",
+                        name=name,
+                        room_key="room",
+                        description=description,
+                        traits=tuple(tags),
+                    )
+                ],
+            ),
+        )
     )
-    event = CharacterGeneratedEvent(
-        **event_base(0),
-        seed="seed",
-        entity_id=str(entity.id),
-        entity_key="npc",
-        entity_kind="character",
-        generation=GenerationIntentComponent(tags=tuple(tags), description=description),
-        character_key="npc",
-        room_id="room_1",
-    )
-    _publish(actor, event)
-    return entity
+    return actor.world.get_entity(result.characters["npc"])
 
 
 def test_mount_worldgen_marks_mountlike_creatures():
-    actor = WorldActor()
-    apply_plugins(load_modules(["bunnyland_petsim"]), actor)
-    steed = _generated(actor, tags=("horse", "wild"), description="a sturdy steed")
+    steed = _generated(tags=("horse", "wild"), description="a sturdy steed")
     assert steed.has_component(MountComponent)
     assert is_mount(steed)
 
 
 def test_mount_worldgen_ignores_non_mounts():
-    actor = WorldActor()
-    apply_plugins(load_modules(["bunnyland_petsim"]), actor)
-    songbird = _generated(actor, tags=("bird",), description="a tiny songbird")
+    songbird = _generated(tags=("bird",), description="a tiny songbird")
     assert not songbird.has_component(MountComponent)
 
 
 def test_is_mountlike_reads_every_mount_term():
     for term in MOUNT_TERMS:
-        event = CharacterGeneratedEvent(
-            **event_base(0),
-            seed="seed",
-            entity_id="x",
-            entity_key="npc",
+        request = GenerationRequest(
             entity_kind="character",
-            generation=GenerationIntentComponent(tags=(term,)),
-            character_key="npc",
-            room_id="room_1",
+            tags=(term,),
         )
-        assert is_mountlike(event)
-
-
-def test_mount_worldgen_hook_skips_missing_and_existing(monkeypatch):
-    from bunnyland_petsim.worldgen import MountWorldgenHook
-
-    actor = WorldActor()
-    hook = MountWorldgenHook()
-    hook.subscribe(actor)
-    # A generated id that never resolved to an entity is skipped silently.
-    ghost = CharacterGeneratedEvent(
-        **event_base(0),
-        seed="seed",
-        entity_id="404",
-        entity_key="npc",
-        entity_kind="character",
-        generation=GenerationIntentComponent(tags=("horse",)),
-        character_key="npc",
-        room_id="room_1",
-    )
-    hook._on_character(ghost)  # no crash
-    # An entity that already is a mount is left untouched.
-    steed = spawn_entity(actor.world, [IdentityComponent(name="mare", kind="character")])
-    steed.add_component(MountComponent(speed=9))
-    event = CharacterGeneratedEvent(
-        **event_base(0),
-        seed="seed",
-        entity_id=str(steed.id),
-        entity_key="npc",
-        entity_kind="character",
-        generation=GenerationIntentComponent(tags=("horse",)),
-        character_key="npc",
-        room_id="room_1",
-    )
-    hook._on_character(event)
-    assert steed.get_component(MountComponent).speed == 9
+        assert is_mountlike(request)
 
 
 # --------------------------------------------------------------------------------------

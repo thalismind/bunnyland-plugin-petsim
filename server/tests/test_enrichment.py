@@ -1,63 +1,48 @@
-from __future__ import annotations
-
 import asyncio
 
-from bunnyland.core import CharacterComponent, IdentityComponent, WorldActor, spawn_entity
-from bunnyland.core.components import GenerationIntentComponent
-from bunnyland.core.events import CharacterGeneratedEvent, event_base
-from bunnyland.plugins import apply_plugins, load_modules
+from bunnyland.core import WorldActor
+from bunnyland.plugins import apply_plugins
+from bunnyland.worldgen import CharacterSpec, RoomSpec, WorldProposal, instantiate
 
 from bunnyland_petsim import TameableComponent
+from bunnyland_petsim.plugin import bunnyland_plugins as _plugins
 
 
-def _actor():
+def _character(*, name="Creature", description="", traits=()):
+    key = name.casefold()
     actor = WorldActor()
-    apply_plugins(load_modules(["bunnyland_petsim"]), actor)
-    return actor
-
-
-def _publish(actor, event):
-    asyncio.run(actor.bus.publish(event))
-
-
-def _character(actor, *, tags=(), description=""):
-    entity = spawn_entity(
-        actor.world, [IdentityComponent(name="npc", kind="character"), CharacterComponent()]
+    apply_plugins(_plugins(), actor)
+    result = asyncio.run(
+        instantiate(
+            actor,
+            WorldProposal(
+                seed="seed",
+                rooms=[RoomSpec(key="room", title="Room")],
+                characters=[
+                    CharacterSpec(
+                        key=key,
+                        name=name,
+                        room_key="room",
+                        description=description,
+                        traits=traits,
+                    )
+                ],
+            ),
+        )
     )
-    event = CharacterGeneratedEvent(
-        **event_base(0),
-        seed="seed",
-        entity_id=str(entity.id),
-        entity_key="npc",
-        entity_kind="character",
-        generation=GenerationIntentComponent(tags=tuple(tags), description=description),
-        character_key="npc",
-        room_id="room_1",
+    return actor.world.get_entity(result.characters[key])
+
+
+def test_wild_creatures_are_tameable_and_feral_creatures_are_skittish():
+    assert _character(name="Fox", traits=("wild",)).has_component(TameableComponent)
+    assert _character(name="Beast", traits=("feral",)).get_component(TameableComponent).skittish
+
+
+def test_description_can_mark_a_stray_animal():
+    assert _character(description="a stray animal skulking in the barn").has_component(
+        TameableComponent
     )
-    _publish(actor, event)
-    return entity
 
 
-def test_wild_creature_gets_tameable_from_tags():
-    actor = _actor()
-    fox = _character(actor, tags=("fox", "wild"))
-    assert fox.has_component(TameableComponent)
-    assert fox.get_component(TameableComponent).species == "fox"
-
-
-def test_wild_creature_detected_from_description():
-    actor = _actor()
-    critter = _character(actor, description="a stray animal skulking in the barn")
-    assert critter.has_component(TameableComponent)
-
-
-def test_feral_creature_is_marked_skittish():
-    actor = _actor()
-    beast = _character(actor, tags=("feral", "beast"))
-    assert beast.get_component(TameableComponent).skittish is True
-
-
-def test_plain_villager_is_not_tameable():
-    actor = _actor()
-    villager = _character(actor, tags=("farmer", "friendly"), description="a cheerful baker")
-    assert not villager.has_component(TameableComponent)
+def test_plain_character_is_ignored():
+    assert not _character(name="Farmer").has_component(TameableComponent)

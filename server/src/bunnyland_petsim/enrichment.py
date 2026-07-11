@@ -1,23 +1,10 @@
-"""World-generation enrichment: seed tameable wild creatures.
+"""Declarative tameable-creature generation enrichment."""
 
-Generated characters expose semantic ``tags``/``wants``/``needs`` and an intent
-``description``. This hook scans that text and attaches a :class:`TameableComponent` to
-creatures that read as wild animals, so worlds ship with something to tame — without the
-core generator knowing this plugin exists.
-"""
-
-from __future__ import annotations
-
-from bunnyland.core.ecs import parse_entity_id, replace_component
-from bunnyland.core.events import CharacterGeneratedEvent, GeneratedEntityEvent
-from bunnyland.core.world_actor import WorldActor
+from bunnyland.core.generation import GenerationDelta, GenerationRequest
 
 from .components import PetComponent, TameableComponent
 
-#: Words that mark a generated character as a tameable wild creature. Concrete species
-#: names come first so the matched term makes a sensible pet species; generic descriptors
-#: ("wild", "stray", ...) still trigger taming but only name the species as a fallback.
-CREATURE_TERMS: tuple[str, ...] = (
+CREATURE_TERMS = (
     "fox",
     "wolf",
     "cat",
@@ -40,51 +27,30 @@ CREATURE_TERMS: tuple[str, ...] = (
 )
 
 
-def _text(event: GeneratedEntityEvent) -> str:
-    generation = event.generation
+def generation_text(request: GenerationRequest) -> str:
     return " ".join(
-        (
-            event.entity_kind,
-            generation.description,
-            *generation.tags,
-            *generation.wants,
-            *generation.needs,
-        )
+        (request.source_key, request.entity_kind, request.description, *request.tags)
     ).casefold()
 
 
-def _matched_species(event: GeneratedEntityEvent) -> str | None:
-    text = _text(event)
-    for term in CREATURE_TERMS:
-        if term in text:
-            return term
-    return None
+class PetGenerationEnricher:
+    capabilities: tuple[str, ...] = ()
 
-
-class PetWorldgenHook:
-    """Attach a ``TameableComponent`` to generated wild creatures."""
-
-    def subscribe(self, actor: WorldActor) -> None:
-        self._actor = actor
-        actor.bus.subscribe(CharacterGeneratedEvent, self._on_character)
-
-    def _entity(self, entity_id: str):
-        parsed = parse_entity_id(entity_id)
-        if parsed is None or not self._actor.world.has_entity(parsed):
-            return None
-        return self._actor.world.get_entity(parsed)
-
-    def _on_character(self, event: CharacterGeneratedEvent) -> None:
-        entity = self._entity(event.entity_id)
-        if entity is None:
-            return
-        if entity.has_component(TameableComponent) or entity.has_component(PetComponent):
-            return
-        species = _matched_species(event)
+    def enrich(self, request: GenerationRequest) -> GenerationDelta:
+        if request.entity_kind != "character":
+            return GenerationDelta()
+        existing = tuple(request.context.get("base_components", ()))
+        if any(isinstance(item, (TameableComponent, PetComponent)) for item in existing):
+            return GenerationDelta()
+        text = generation_text(request)
+        species = next((term for term in CREATURE_TERMS if term in text), None)
         if species is None:
-            return
-        skittish = "feral" in _text(event) or "wild" in _text(event)
-        replace_component(entity, TameableComponent(species=species, skittish=skittish))
+            return GenerationDelta()
+        return GenerationDelta(
+            components=(
+                TameableComponent(species=species, skittish="feral" in text or "wild" in text),
+            )
+        )
 
 
-__all__ = ["CREATURE_TERMS", "PetWorldgenHook"]
+__all__ = ["CREATURE_TERMS", "PetGenerationEnricher", "generation_text"]

@@ -82,9 +82,7 @@ def test_taming_transfers_tricks_to_pet():
 
 def test_skittish_creature_needs_more_attempts():
     actor, room, tamer = _scene()
-    creature = spawn_tameable(
-        actor.world, room_id=room.id, tame_threshold=0.6, skittish=True
-    )
+    creature = spawn_tameable(actor.world, room_id=room.id, tame_threshold=0.6, skittish=True)
     handler = TameHandler()
     # Skittish step is 0.17, so two attempts (0.34) is not enough for a 0.6 threshold.
     handler.execute(_ctx(actor), _cmd(tamer.id, {"creature_id": str(creature.id)}))

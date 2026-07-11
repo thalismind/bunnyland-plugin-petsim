@@ -17,7 +17,7 @@ from .components import (
     clamp_happiness,
 )
 from .edges import Follows, owned_pets, owner_id_of, set_owner
-from .enrichment import CREATURE_TERMS, PetWorldgenHook
+from .enrichment import CREATURE_TERMS, PetGenerationEnricher
 from .events import (
     DismountedEvent,
     MountedEvent,
@@ -82,7 +82,7 @@ from .tricks import (
     perceived_threats,
     reaction_line,
 )
-from .worldgen import MOUNT_TERMS, MountWorldgenHook, is_mountlike
+from .worldgen import MOUNT_TERMS, MountGenerationEnricher, is_mountlike
 
 __all__ = [
     "COMMAND_PET_DEF",
@@ -113,7 +113,7 @@ __all__ = [
     "GroomPetHandler",
     "MountComponent",
     "MountTraveledEvent",
-    "MountWorldgenHook",
+    "MountGenerationEnricher",
     "MountedEvent",
     "PetAffectReactor",
     "PetCareComponent",
@@ -129,7 +129,7 @@ __all__ = [
     "PetTamedEvent",
     "PetTrainedEvent",
     "PetTrickEvent",
-    "PetWorldgenHook",
+    "PetGenerationEnricher",
     "PlayWithPetHandler",
     "RiddenBy",
     "RideHandler",

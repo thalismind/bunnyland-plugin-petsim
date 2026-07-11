@@ -23,8 +23,8 @@ from bunnyland.core.handlers import (
     require_character,
     require_reachable_entity,
 )
-from bunnyland.mechanics.consumables import ConsumableComponent, FoodComponent
-from bunnyland.mechanics.social import adjust_bond, bond_between
+from bunnyland.foundation.consumables.components import ConsumableComponent, FoodComponent
+from bunnyland.foundation.social.mechanics import adjust_bond, bond_between
 
 from .components import PetComponent, clamp_happiness
 from .events import PetFedEvent

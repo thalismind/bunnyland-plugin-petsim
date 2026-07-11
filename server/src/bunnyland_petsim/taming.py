@@ -20,7 +20,7 @@ from bunnyland.core.handlers import (
     require_character,
     require_reachable_entity,
 )
-from bunnyland.mechanics.social import adjust_bond, bond_between
+from bunnyland.foundation.social.mechanics import adjust_bond, bond_between
 
 from .components import PetComponent, TameableComponent
 from .edges import set_owner
@@ -65,9 +65,7 @@ class TameHandler:
         tamed = bond.affinity >= tameable.tame_threshold
         if tamed:
             creature.remove_component(TameableComponent)
-            creature.add_component(
-                PetComponent(species=tameable.species, tricks=tameable.tricks)
-            )
+            creature.add_component(PetComponent(species=tameable.species, tricks=tameable.tricks))
             set_owner(creature, character_id, since_epoch=ctx.epoch)
 
         room = room_of(ctx.world, character_id)

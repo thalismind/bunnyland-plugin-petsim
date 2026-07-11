@@ -16,7 +16,7 @@ from bunnyland.core import (
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.ecs import replace_component
 from bunnyland.core.handlers import HandlerContext
-from bunnyland.mechanics.meter import Meter, band
+from bunnyland.foundation.meters.mechanics import Meter, band
 
 from bunnyland_petsim import (
     DismountHandler,
@@ -170,9 +170,7 @@ def test_ride_to_crosses_multiple_rooms_in_one_action():
     yard.add_relationship(ExitTo(direction="north"), field.id)
 
     RideHandler().execute(_ctx(actor), _cmd(owner.id, "ride", {"mount_id": str(mount.id)}))
-    result = RideToHandler().execute(
-        _ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"})
-    )
+    result = RideToHandler().execute(_ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"}))
     assert result.ok
     event = result.events[0]
     assert isinstance(event, MountTraveledEvent)
@@ -187,9 +185,7 @@ def test_ride_to_stops_at_dead_end():
     yard = _room(actor.world, "Yard")
     stable.add_relationship(ExitTo(direction="north"), yard.id)  # yard has no north exit
     RideHandler().execute(_ctx(actor), _cmd(owner.id, "ride", {"mount_id": str(mount.id)}))
-    result = RideToHandler().execute(
-        _ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"})
-    )
+    result = RideToHandler().execute(_ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"}))
     assert result.ok
     assert result.events[0].hops == 1
     assert container_of(owner) == yard.id
@@ -197,9 +193,7 @@ def test_ride_to_stops_at_dead_end():
 
 def test_ride_to_rejects_when_not_riding():
     actor, _stable, owner, _mount = _scene()
-    result = RideToHandler().execute(
-        _ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"})
-    )
+    result = RideToHandler().execute(_ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"}))
     assert not result.ok
     assert result.reason == "you are not riding anything"
 
@@ -209,9 +203,7 @@ def test_ride_to_rejects_no_matching_exit():
     east_room = _room(actor.world, "East")
     stable.add_relationship(ExitTo(direction="east"), east_room.id)
     RideHandler().execute(_ctx(actor), _cmd(owner.id, "ride", {"mount_id": str(mount.id)}))
-    result = RideToHandler().execute(
-        _ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"})
-    )
+    result = RideToHandler().execute(_ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"}))
     assert not result.ok
     assert result.reason == "no matching exit"
 
@@ -222,9 +214,7 @@ def test_ride_to_rejects_tired_mount():
     stable.add_relationship(ExitTo(direction="north"), yard.id)
     RideHandler().execute(_ctx(actor), _cmd(owner.id, "ride", {"mount_id": str(mount.id)}))
     assert band(mount.get_component(MountComponent).stamina) == "crisis"
-    result = RideToHandler().execute(
-        _ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"})
-    )
+    result = RideToHandler().execute(_ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"}))
     assert not result.ok
     assert result.reason == "your mount is too tired"
 
@@ -243,9 +233,7 @@ def test_locked_exit_is_not_traversed():
     yard = _room(actor.world, "Yard")
     stable.add_relationship(ExitTo(direction="north", locked=True), yard.id)
     RideHandler().execute(_ctx(actor), _cmd(owner.id, "ride", {"mount_id": str(mount.id)}))
-    result = RideToHandler().execute(
-        _ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"})
-    )
+    result = RideToHandler().execute(_ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"}))
     assert not result.ok
     assert result.reason == "no matching exit"
 
@@ -258,9 +246,7 @@ def test_ride_to_stops_when_stamina_hits_crisis_midway():
         rooms[-1].add_relationship(ExitTo(direction="north"), nxt.id)
         rooms.append(nxt)
     RideHandler().execute(_ctx(actor), _cmd(owner.id, "ride", {"mount_id": str(mount.id)}))
-    result = RideToHandler().execute(
-        _ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"})
-    )
+    result = RideToHandler().execute(_ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"}))
     assert result.ok
     # From 80, +20/hop reaches crisis (>=90) after one hop, so it stops early.
     assert result.events[0].hops == 1
@@ -304,8 +290,6 @@ def test_ride_to_rejects_when_rider_has_no_room():
     actor, _stable, owner, mount = _scene()
     set_rider(mount, owner.id)
     remove_from_container(actor.world, owner.id)  # rider is now roomless
-    result = RideToHandler().execute(
-        _ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"})
-    )
+    result = RideToHandler().execute(_ctx(actor), _cmd(owner.id, "ride-to", {"direction": "north"}))
     assert not result.ok
     assert result.reason == "you are not in a room"

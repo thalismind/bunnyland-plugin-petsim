@@ -11,8 +11,8 @@ from bunnyland.core import (
 )
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
-from bunnyland.mechanics.consumables import ConsumableComponent, FoodComponent
-from bunnyland.mechanics.social import bond_between
+from bunnyland.foundation.consumables.components import ConsumableComponent, FoodComponent
+from bunnyland.foundation.social.mechanics import bond_between
 
 from bunnyland_petsim import PetComponent, PetFedEvent, spawn_pet
 from bunnyland_petsim.bonding import FeedPetHandler, loyalty_band

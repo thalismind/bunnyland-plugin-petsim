@@ -15,7 +15,7 @@ from bunnyland.core import (
 )
 from bunnyland.core.edges import HasThought
 from bunnyland.core.events import EventVisibility, event_base
-from bunnyland.mechanics.storyteller import IncidentComponent
+from bunnyland.foundation.storyteller.mechanics import IncidentComponent
 
 from bunnyland_petsim import (
     Follows,
@@ -86,9 +86,7 @@ def test_nervous_pet_bolts_and_is_lost():
     actor = WorldActor()
     room = _room(actor.world)
     owner = _owner(actor.world, room)
-    pet = spawn_pet(
-        actor.world, room_id=room.id, owner_id=owner.id, species="hare", nervous=True
-    )
+    pet = spawn_pet(actor.world, room_id=room.id, owner_id=owner.id, species="hare", nervous=True)
     _incident(actor.world, room, kind="kaiju_attack")
 
     events = StampedeConsequence().process(actor.world, 20)
@@ -230,9 +228,7 @@ def test_reactor_records_worry_when_a_pet_is_lost():
     room = _room(actor.world)
     owner = _owner(actor.world, room)
     reactor = PetAffectReactor(actor.world)
-    lost = PetLostEvent(
-        **event_base(3, actor_id="p", pet_id="p", owner_id=str(owner.id))
-    )
+    lost = PetLostEvent(**event_base(3, actor_id="p", pet_id="p", owner_id=str(owner.id)))
     reactor._on_lost(lost)
     assert len(_thoughts(actor.world, owner)) == 1
 
