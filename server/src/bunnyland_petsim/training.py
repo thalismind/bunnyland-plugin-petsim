@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from bunnyland.core.actions import ActionArgument, ActionDefinition
-from bunnyland.core.commands import CommandCost, Lane, SubmittedCommand
+from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
+from bunnyland.core.commands import Lane, SubmittedCommand
 from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import EventVisibility
 from bunnyland.core.handlers import (
@@ -140,7 +140,7 @@ TRAIN_DEF = ActionDefinition(
     title="Train pet",
     description="Run a training session with a pet you own to raise its skill.",
     lane=Lane.WORLD,
-    cost=CommandCost(action=1),
+    cost=effort_cost(action=ActionEffort.ROUTINE),
     arguments={
         "pet_id": ActionArgument(
             title="Pet", description="The pet to train.", kind="entity", required=True

@@ -17,8 +17,8 @@ from __future__ import annotations
 from dataclasses import replace
 
 from bunnyland.core import reachable_ids
-from bunnyland.core.actions import ActionArgument, ActionDefinition
-from bunnyland.core.commands import CommandCost, Lane, SubmittedCommand
+from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
+from bunnyland.core.commands import Lane, SubmittedCommand
 from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import DomainEvent, EventVisibility
 from bunnyland.core.handlers import (
@@ -222,7 +222,7 @@ PLAY_WITH_DEF = ActionDefinition(
     title="Play with pet",
     description="Play with a pet you own to make it happy.",
     lane=Lane.WORLD,
-    cost=CommandCost(action=1),
+    cost=effort_cost(action=ActionEffort.ROUTINE),
     arguments={
         "pet_id": ActionArgument(
             title="Pet", description="The pet to play with.", kind="entity", required=True
@@ -235,7 +235,7 @@ GROOM_DEF = ActionDefinition(
     title="Groom pet",
     description="Groom a pet you own to tidy it up.",
     lane=Lane.WORLD,
-    cost=CommandCost(action=1),
+    cost=effort_cost(action=ActionEffort.ROUTINE),
     arguments={
         "pet_id": ActionArgument(
             title="Pet", description="The pet to groom.", kind="entity", required=True

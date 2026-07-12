@@ -11,8 +11,8 @@ from __future__ import annotations
 from dataclasses import replace
 
 from bunnyland.core import IdentityComponent
-from bunnyland.core.actions import ActionArgument, ActionDefinition
-from bunnyland.core.commands import CommandCost, Lane, SubmittedCommand
+from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
+from bunnyland.core.commands import Lane, SubmittedCommand
 from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import EventVisibility
 from bunnyland.core.handlers import (
@@ -152,7 +152,7 @@ TRICK_DEF = ActionDefinition(
     title="Perform trick",
     description="Ask a pet you own to perform a trick it knows.",
     lane=Lane.WORLD,
-    cost=CommandCost(action=1),
+    cost=effort_cost(action=ActionEffort.ROUTINE),
     arguments={
         "pet_id": ActionArgument(
             title="Pet", description="The pet to command.", kind="entity", required=True

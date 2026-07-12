@@ -26,8 +26,8 @@ from bunnyland.core import (
     ExitTo,
     remove_from_container,
 )
-from bunnyland.core.actions import ActionArgument, ActionDefinition
-from bunnyland.core.commands import CommandCost, Lane, SubmittedCommand
+from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
+from bunnyland.core.commands import Lane, SubmittedCommand
 from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import EventVisibility
 from bunnyland.core.handlers import (
@@ -273,7 +273,7 @@ RIDE_DEF = ActionDefinition(
     title="Ride mount",
     description="Climb onto a trained mount you own so it can carry you.",
     lane=Lane.WORLD,
-    cost=CommandCost(action=1),
+    cost=effort_cost(action=ActionEffort.ROUTINE),
     arguments={
         "mount_id": ActionArgument(
             title="Mount", description="The mount to ride.", kind="entity", required=True
@@ -286,7 +286,7 @@ DISMOUNT_DEF = ActionDefinition(
     title="Dismount",
     description="Get down off the mount you are riding.",
     lane=Lane.WORLD,
-    cost=CommandCost(action=1),
+    cost=effort_cost(action=ActionEffort.ROUTINE),
     arguments={},
 )
 
@@ -295,7 +295,7 @@ RIDE_TO_DEF = ActionDefinition(
     title="Ride to",
     description="Ride your mount through several rooms in a single burst of travel.",
     lane=Lane.WORLD,
-    cost=CommandCost(action=1),
+    cost=effort_cost(action=ActionEffort.ROUTINE),
     arguments={
         "direction": ActionArgument(
             title="Direction",

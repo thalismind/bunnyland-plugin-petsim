@@ -9,8 +9,8 @@ creature warms more slowly, so it needs more attempts.
 
 from __future__ import annotations
 
-from bunnyland.core.actions import ActionArgument, ActionDefinition
-from bunnyland.core.commands import CommandCost, Lane, SubmittedCommand
+from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
+from bunnyland.core.commands import Lane, SubmittedCommand
 from bunnyland.core.events import EventVisibility
 from bunnyland.core.handlers import (
     HandlerContext,
@@ -96,7 +96,7 @@ TAME_DEF = ActionDefinition(
     title="Tame creature",
     description="Coax a wild creature toward becoming your pet. May take several attempts.",
     lane=Lane.WORLD,
-    cost=CommandCost(action=1),
+    cost=effort_cost(action=ActionEffort.ROUTINE),
     arguments={
         "creature_id": ActionArgument(
             title="Creature",
