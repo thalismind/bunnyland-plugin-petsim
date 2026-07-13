@@ -17,16 +17,16 @@ from dataclasses import replace
 from bunnyland.core import ContainmentMode, Contains, remove_from_container
 from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
 from bunnyland.core.commands import Lane, SubmittedCommand
-from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import DomainEvent, EventVisibility, event_base
 from bunnyland.core.handlers import (
     HandlerContext,
     HandlerResult,
-    ok,
+    planned,
     rejected,
     require_character,
     require_reachable_entity,
 )
+from bunnyland.core.mutations import MutationPlan, SetComponent
 from relics import World
 
 from .components import PET_MODES, RELOCATING_MODES, PetComponent
@@ -101,8 +101,8 @@ class CommandPetHandler:
         if mode not in PET_MODES:
             return rejected("unknown pet command")
         component = pet.get_component(PetComponent)
-        replace_component(pet, replace(component, mode=mode))
-        return ok(
+        return planned(
+            MutationPlan((SetComponent(pet_id, replace(component, mode=mode)),)),
             PetCommandedEvent(
                 **ctx.event_base(
                     visibility=EventVisibility.ROOM,
@@ -114,7 +114,7 @@ class CommandPetHandler:
                     pet_id=str(pet.id),
                     mode=mode,
                 )
-            )
+            ),
         )
 
 

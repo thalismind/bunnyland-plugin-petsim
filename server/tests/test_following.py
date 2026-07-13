@@ -12,6 +12,7 @@ from bunnyland.core import (
 )
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
+from conftest import execute_handler
 
 from bunnyland_petsim import (
     FollowingConsequence,
@@ -120,8 +121,10 @@ def test_command_pet_sets_mode():
     owner = _owner(actor.world, kitchen)
     pet = spawn_pet(actor.world, room_id=kitchen.id, owner_id=owner.id)
 
-    result = CommandPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, "command-pet", {"pet_id": str(pet.id), "mode": "stay"})
+    result = execute_handler(
+        CommandPetHandler(),
+        _ctx(actor),
+        _cmd(owner.id, "command-pet", {"pet_id": str(pet.id), "mode": "stay"}),
     )
 
     assert result.ok
@@ -134,8 +137,10 @@ def test_command_pet_rejects_unknown_mode():
     owner = _owner(actor.world, kitchen)
     pet = spawn_pet(actor.world, room_id=kitchen.id, owner_id=owner.id)
 
-    result = CommandPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, "command-pet", {"pet_id": str(pet.id), "mode": "fetch"})
+    result = execute_handler(
+        CommandPetHandler(),
+        _ctx(actor),
+        _cmd(owner.id, "command-pet", {"pet_id": str(pet.id), "mode": "fetch"}),
     )
 
     assert not result.ok
@@ -152,8 +157,10 @@ def test_command_pet_rejects_non_owner():
     kitchen.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), stranger.id)
     pet = spawn_pet(actor.world, room_id=kitchen.id, owner_id=owner.id)
 
-    result = CommandPetHandler().execute(
-        _ctx(actor), _cmd(stranger.id, "command-pet", {"pet_id": str(pet.id), "mode": "stay"})
+    result = execute_handler(
+        CommandPetHandler(),
+        _ctx(actor),
+        _cmd(stranger.id, "command-pet", {"pet_id": str(pet.id), "mode": "stay"}),
     )
 
     assert not result.ok
@@ -167,8 +174,10 @@ def test_command_pet_rejects_non_pet_target():
     rock = spawn_entity(actor.world, [IdentityComponent(name="rock", kind="item")])
     kitchen.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), rock.id)
 
-    result = CommandPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, "command-pet", {"pet_id": str(rock.id), "mode": "stay"})
+    result = execute_handler(
+        CommandPetHandler(),
+        _ctx(actor),
+        _cmd(owner.id, "command-pet", {"pet_id": str(rock.id), "mode": "stay"}),
     )
 
     assert not result.ok
@@ -183,8 +192,10 @@ def test_command_pet_rejects_unreachable_pet():
     pet = spawn_pet(actor.world, room_id=garden.id)
     set_owner(pet, owner.id)
 
-    result = CommandPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, "command-pet", {"pet_id": str(pet.id), "mode": "stay"})
+    result = execute_handler(
+        CommandPetHandler(),
+        _ctx(actor),
+        _cmd(owner.id, "command-pet", {"pet_id": str(pet.id), "mode": "stay"}),
     )
 
     assert not result.ok
