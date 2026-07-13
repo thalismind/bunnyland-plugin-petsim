@@ -1,6 +1,7 @@
 import asyncio
 
 from bunnyland.core import WorldActor
+from bunnyland.foundation.core_verbs.plugin import plugin as core_verbs_plugin
 from bunnyland.plugins import apply_plugins
 from bunnyland.worldgen import CharacterSpec, RoomSpec, WorldProposal, instantiate
 
@@ -11,7 +12,7 @@ from bunnyland_petsim.plugin import bunnyland_plugins as _plugins
 def _character(*, name="Creature", description="", traits=()):
     key = name.casefold()
     actor = WorldActor()
-    apply_plugins(_plugins(), actor)
+    apply_plugins([core_verbs_plugin(), *_plugins()], actor)
     result = asyncio.run(
         instantiate(
             actor,

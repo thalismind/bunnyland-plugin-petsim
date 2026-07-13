@@ -14,8 +14,10 @@ from bunnyland.core import (
     spawn_entity,
 )
 from bunnyland.core.generation import GenerationRequest
+from bunnyland.foundation.core_verbs.plugin import plugin as core_verbs_plugin
 from bunnyland.plugins import apply_plugins
 from bunnyland.worldgen import CharacterSpec, RoomSpec, WorldProposal, instantiate
+from conftest import execute_handler
 from pydantic.dataclasses import dataclass
 from relics import Component
 
@@ -197,7 +199,7 @@ def test_taming_folds_in_the_knowledge_bonus(monkeypatch):
         lane=Lane.WORLD,
         payload={"creature_id": str(creature.id)},
     )
-    result = TameHandler().execute(HandlerContext(world=actor.world, epoch=1), command)
+    result = execute_handler(TameHandler(), HandlerContext(world=actor.world, epoch=1), command)
     # Even a skittish creature is tamed in one attempt once the huge bonus lands.
     assert result.ok
     assert result.events[0].tamed
@@ -210,7 +212,7 @@ def test_taming_folds_in_the_knowledge_bonus(monkeypatch):
 
 def _generated(*, tags=(), description="", name="beast"):
     actor = WorldActor()
-    apply_plugins(_plugins(), actor)
+    apply_plugins([core_verbs_plugin(), *_plugins()], actor)
     result = asyncio.run(
         instantiate(
             actor,

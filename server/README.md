@@ -39,5 +39,5 @@ bunnyland serve --module bunnyland_petsim
 - **Prompt fragments** rendering pet loyalty and threat reactions into human and AI
   prompts.
 - **A worldgen hook** tagging generated wild creatures with `TameableComponent`.
-- **Four verbs** — `tame`, `feed-pet`, `command-pet`, and `trick`.
+- **Four verbs** — `tame`, `feed-pet`, contextual `command`, and `trick`.
 - **Spawn factories** — `spawn_pet`, `spawn_tameable`.

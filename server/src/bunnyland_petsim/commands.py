@@ -7,7 +7,7 @@ module; this module just gathers them into the tuples the plugin registers.
 from __future__ import annotations
 
 from .bonding import FEED_PET_DEF, FeedPetHandler
-from .following import COMMAND_PET_DEF, CommandPetHandler
+from .following import CommandPetHandler
 from .mounts import (
     DISMOUNT_DEF,
     RIDE_DEF,
@@ -36,7 +36,6 @@ PET_ACTION_HANDLERS = (
 PET_ACTION_DEFINITIONS = (
     TAME_DEF,
     FEED_PET_DEF,
-    COMMAND_PET_DEF,
     TRICK_DEF,
     RIDE_DEF,
     DISMOUNT_DEF,

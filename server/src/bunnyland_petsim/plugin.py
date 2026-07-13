@@ -51,7 +51,10 @@ def plugin() -> Plugin:
         name="Bunnyland Petsim",
         version="0.2.0",
         default_enabled=True,
-        dependencies=DependencyContribution(recommends=(WILDSIM_ID, LORESIM_ID)),
+        dependencies=DependencyContribution(
+            requires=("bunnyland.core_verbs",),
+            recommends=(WILDSIM_ID, LORESIM_ID),
+        ),
         ecs=EcsContribution(
             components=(
                 PetComponent,

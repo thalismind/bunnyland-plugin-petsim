@@ -1,4 +1,4 @@
-"""Following: keep a pet in the same room as its owner, and the ``command-pet`` verb.
+"""Following: keep a pet in the same room as its owner, and the contextual ``command`` verb.
 
 The :class:`FollowingConsequence` runs each tick. For every pet whose mode chases its owner
 (``follow`` or ``heel``), it relocates the pet into the owner's current room when they have
@@ -6,7 +6,7 @@ drifted apart, emitting a :class:`PetFollowedEvent` on the move. Relocation is d
 by rewriting ``Contains`` edges (remove from the old container, add into the owner's room),
 matching how the core movement handler moves characters.
 
-The ``command-pet`` verb lets an owner set a pet's follow mode. It validates in the project
+The ``command`` verb lets an owner set a pet's follow mode. It validates in the project
 order: invalid id -> missing entity -> unreachable -> wrong kind -> not your pet -> bad mode.
 """
 
@@ -15,8 +15,8 @@ from __future__ import annotations
 from dataclasses import replace
 
 from bunnyland.core import ContainmentMode, Contains, remove_from_container
-from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
-from bunnyland.core.commands import Lane, SubmittedCommand
+from bunnyland.core.commands import SubmittedCommand
+from bunnyland.core.ecs import parse_entity_id
 from bunnyland.core.events import DomainEvent, EventVisibility, event_base
 from bunnyland.core.handlers import (
     HandlerContext,
@@ -77,7 +77,15 @@ class FollowingConsequence:
 class CommandPetHandler:
     """Set a pet's follow mode (``follow`` / ``heel`` / ``stay``)."""
 
-    command_type = "command-pet"
+    command_type = "command"
+
+    def can_handle(self, ctx: HandlerContext, command: SubmittedCommand) -> bool:
+        target_id = parse_entity_id(command.payload.get("target_id"))
+        return (
+            target_id is not None
+            and ctx.world.has_entity(target_id)
+            and ctx.entity(target_id).has_component(PetComponent)
+        )
 
     def execute(self, ctx: HandlerContext, command: SubmittedCommand) -> HandlerResult:
         character_id, character, rejection = require_character(ctx, command.character_id)
@@ -86,7 +94,7 @@ class CommandPetHandler:
         pet_id, pet, rejection = require_reachable_entity(
             ctx,
             character,
-            command.payload.get("pet_id"),
+            command.payload.get("target_id"),
             invalid_reason="invalid pet id",
             missing_reason="pet does not exist",
             unreachable_reason="that pet is not here",
@@ -97,7 +105,7 @@ class CommandPetHandler:
             return rejected("that is not a pet")
         if owner_id_of(pet) != character_id:
             return rejected("that is not your pet")
-        mode = command.payload.get("mode")
+        mode = command.payload.get("instruction")
         if mode not in PET_MODES:
             return rejected("unknown pet command")
         component = pet.get_component(PetComponent)
@@ -118,24 +126,4 @@ class CommandPetHandler:
         )
 
 
-COMMAND_PET_DEF = ActionDefinition(
-    command_type="command-pet",
-    title="Command pet",
-    description="Tell a pet you own to follow, heel, or stay.",
-    lane=Lane.WORLD,
-    cost=effort_cost(action=ActionEffort.ROUTINE),
-    arguments={
-        "pet_id": ActionArgument(
-            title="Pet", description="The pet to command.", kind="entity", required=True
-        ),
-        "mode": ActionArgument(
-            title="Mode",
-            description="One of: follow, heel, stay.",
-            kind="string",
-            required=True,
-        ),
-    },
-)
-
-
-__all__ = ["COMMAND_PET_DEF", "CommandPetHandler", "FollowingConsequence"]
+__all__ = ["CommandPetHandler", "FollowingConsequence"]

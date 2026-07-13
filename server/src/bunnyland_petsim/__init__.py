@@ -33,7 +33,7 @@ from .events import (
     PetTrainedEvent,
     PetTrickEvent,
 )
-from .following import COMMAND_PET_DEF, CommandPetHandler, FollowingConsequence
+from .following import CommandPetHandler, FollowingConsequence
 from .fragments import petsim_fragments
 from .incidents import THREAT_INCIDENT_KINDS, StampedeConsequence
 from .install import install_petsim
@@ -85,7 +85,6 @@ from .tricks import (
 from .worldgen import MOUNT_TERMS, MountGenerationEnricher, is_mountlike
 
 __all__ = [
-    "COMMAND_PET_DEF",
     "CREATURE_TERMS",
     "DISMOUNT_DEF",
     "FEED_PET_DEF",

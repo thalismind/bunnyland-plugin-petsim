@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from bunnyland.core.world_actor import WorldActor
+from bunnyland.foundation.core_verbs.plugin import plugin as core_verbs_plugin
 from bunnyland.plugins import apply_plugins
 
 from bunnyland_petsim import (
@@ -52,18 +53,18 @@ def test_plugin_is_v2():
         assert provider in plugin.content.prompt_fragments
     # Optional synergy with wild/lore packs is a recommendation, never a hard requirement.
     assert plugin.dependencies.recommends == (WILDSIM_ID, LORESIM_ID)
-    assert plugin.dependencies.requires == ()
+    assert plugin.dependencies.requires == ("bunnyland.core_verbs",)
 
 
 def test_plugin_applies_and_registers_verbs():
     actor = WorldActor()
-    applied = apply_plugins(_plugins(), actor)
-    assert applied[0].id == PLUGIN_ID
+    applied = apply_plugins([core_verbs_plugin(), *_plugins()], actor)
+    assert any(item.id == PLUGIN_ID for item in applied)
     command_types = {definition.command_type for definition in actor.action_definitions()}
     assert {
         "tame",
         "feed-pet",
-        "command-pet",
+        "command",
         "trick",
         "ride",
         "dismount",

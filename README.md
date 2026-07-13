@@ -19,7 +19,7 @@ The plugin exposes `bunnyland_petsim.bunnyland_plugins()` and contributes:
 - **Following** — a `Follows` edge (pet -> owner) and a `PetComponent` carrying the pet's
   species, follow mode (`follow` / `heel` / `stay`), tricks, and happiness. The
   `FollowingConsequence` relocates a following pet into its owner's room each tick when
-  they diverge, and `command-pet` sets the follow mode.
+  they diverge, and contextual `command` sets the follow mode.
 - **Taming** — wild creatures carry a `TameableComponent`. The `tame` verb builds a
   `SocialBond` over one or more attempts; once the creature trusts the character enough it
   becomes their pet (adds the `Follows` edge). Worldgen seeds tameable wild creatures.

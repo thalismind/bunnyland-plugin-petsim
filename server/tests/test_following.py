@@ -124,7 +124,7 @@ def test_command_pet_sets_mode():
     result = execute_handler(
         CommandPetHandler(),
         _ctx(actor),
-        _cmd(owner.id, "command-pet", {"pet_id": str(pet.id), "mode": "stay"}),
+        _cmd(owner.id, "command", {"target_id": str(pet.id), "instruction": "stay"}),
     )
 
     assert result.ok
@@ -140,7 +140,7 @@ def test_command_pet_rejects_unknown_mode():
     result = execute_handler(
         CommandPetHandler(),
         _ctx(actor),
-        _cmd(owner.id, "command-pet", {"pet_id": str(pet.id), "mode": "fetch"}),
+        _cmd(owner.id, "command", {"target_id": str(pet.id), "instruction": "fetch"}),
     )
 
     assert not result.ok
@@ -160,7 +160,7 @@ def test_command_pet_rejects_non_owner():
     result = execute_handler(
         CommandPetHandler(),
         _ctx(actor),
-        _cmd(stranger.id, "command-pet", {"pet_id": str(pet.id), "mode": "stay"}),
+        _cmd(stranger.id, "command", {"target_id": str(pet.id), "instruction": "stay"}),
     )
 
     assert not result.ok
@@ -177,7 +177,7 @@ def test_command_pet_rejects_non_pet_target():
     result = execute_handler(
         CommandPetHandler(),
         _ctx(actor),
-        _cmd(owner.id, "command-pet", {"pet_id": str(rock.id), "mode": "stay"}),
+        _cmd(owner.id, "command", {"target_id": str(rock.id), "instruction": "stay"}),
     )
 
     assert not result.ok
@@ -195,7 +195,7 @@ def test_command_pet_rejects_unreachable_pet():
     result = execute_handler(
         CommandPetHandler(),
         _ctx(actor),
-        _cmd(owner.id, "command-pet", {"pet_id": str(pet.id), "mode": "stay"}),
+        _cmd(owner.id, "command", {"target_id": str(pet.id), "instruction": "stay"}),
     )
 
     assert not result.ok
