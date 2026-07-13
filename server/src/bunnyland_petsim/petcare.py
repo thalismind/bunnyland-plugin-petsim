@@ -24,13 +24,14 @@ from bunnyland.core.events import DomainEvent, EventVisibility
 from bunnyland.core.handlers import (
     HandlerContext,
     HandlerResult,
-    ok,
+    planned,
     rejected,
     require_character,
     require_reachable_entity,
 )
+from bunnyland.core.mutations import AddEdge, MutationPlan, SetComponent
 from bunnyland.foundation.meters.mechanics import Meter, band, changed, with_value
-from bunnyland.foundation.social.mechanics import adjust_bond
+from bunnyland.foundation.social.mechanics import adjusted_bond
 from pydantic.dataclasses import dataclass
 from relics import Component, Entity, World
 
@@ -122,6 +123,12 @@ def _ensure_care(pet: Entity, epoch: int) -> PetCareComponent:
     return care
 
 
+def _planned_care(pet: Entity, epoch: int) -> PetCareComponent:
+    if pet.has_component(PetCareComponent):
+        return pet.get_component(PetCareComponent)
+    return PetCareComponent(last_updated_epoch=epoch)
+
+
 class PlayWithPetHandler:
     """Play with a pet you own to cheer it up and settle its restlessness."""
 
@@ -146,15 +153,20 @@ class PlayWithPetHandler:
         if owner_id_of(pet) != character_id:
             return rejected("that is not your pet")
 
-        care = _ensure_care(pet, ctx.epoch)
-        replace_component(pet, replace(care, play_need=with_value(care.play_need, 0.0)))
+        care = _planned_care(pet, ctx.epoch)
         component = pet.get_component(PetComponent)
         happiness = clamp_happiness(component.happiness + PLAY_HAPPINESS)
-        replace_component(pet, replace(component, happiness=happiness))
-        adjust_bond(ctx.world, pet_id, character_id, {"affinity": PLAY_AFFINITY})
+        bond = adjusted_bond(ctx.world, pet_id, character_id, {"affinity": PLAY_AFFINITY})
 
         room = room_of(ctx.world, character_id)
-        return ok(
+        return planned(
+            MutationPlan(
+                (
+                    SetComponent(pet_id, replace(care, play_need=with_value(care.play_need, 0.0))),
+                    SetComponent(pet_id, replace(component, happiness=happiness)),
+                    AddEdge(pet_id, character_id, bond),
+                )
+            ),
             PetPlayedEvent(
                 **ctx.event_base(
                     visibility=EventVisibility.ROOM,
@@ -165,7 +177,7 @@ class PlayWithPetHandler:
                     owner_id=str(character_id),
                     happiness=happiness,
                 )
-            )
+            ),
         )
 
 
@@ -193,17 +205,25 @@ class GroomPetHandler:
         if owner_id_of(pet) != character_id:
             return rejected("that is not your pet")
 
-        care = _ensure_care(pet, ctx.epoch)
-        replace_component(pet, replace(care, grooming=with_value(care.grooming, 0.0)))
+        care = _planned_care(pet, ctx.epoch)
         component = pet.get_component(PetComponent)
-        replace_component(
-            pet,
-            replace(component, happiness=clamp_happiness(component.happiness + GROOM_HAPPINESS)),
-        )
-        adjust_bond(ctx.world, pet_id, character_id, {"trust": GROOM_TRUST})
+        bond = adjusted_bond(ctx.world, pet_id, character_id, {"trust": GROOM_TRUST})
 
         room = room_of(ctx.world, character_id)
-        return ok(
+        return planned(
+            MutationPlan(
+                (
+                    SetComponent(pet_id, replace(care, grooming=with_value(care.grooming, 0.0))),
+                    SetComponent(
+                        pet_id,
+                        replace(
+                            component,
+                            happiness=clamp_happiness(component.happiness + GROOM_HAPPINESS),
+                        ),
+                    ),
+                    AddEdge(pet_id, character_id, bond),
+                )
+            ),
             PetGroomedEvent(
                 **ctx.event_base(
                     visibility=EventVisibility.ROOM,
@@ -213,7 +233,7 @@ class GroomPetHandler:
                     pet_id=str(pet_id),
                     owner_id=str(character_id),
                 )
-            )
+            ),
         )
 
 

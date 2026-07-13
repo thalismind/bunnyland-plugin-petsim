@@ -15,6 +15,7 @@ from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
 from bunnyland.foundation.meters.mechanics import Meter, band
 from bunnyland.foundation.social.mechanics import bond_between
+from conftest import execute_handler
 
 from bunnyland_petsim import (
     GroomPetHandler,
@@ -71,8 +72,8 @@ def _scene():
 def test_play_with_cheers_and_settles_restlessness():
     actor, _room, owner, pet = _scene()
     pet.add_component(PetCareComponent(play_need=Meter(value=60.0)))
-    result = PlayWithPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, "play-with", {"pet_id": str(pet.id)})
+    result = execute_handler(
+        PlayWithPetHandler(), _ctx(actor), _cmd(owner.id, "play-with", {"pet_id": str(pet.id)})
     )
     assert result.ok
     assert isinstance(result.events[0], PetPlayedEvent)
@@ -85,8 +86,8 @@ def test_play_with_cheers_and_settles_restlessness():
 def test_play_with_bootstraps_care_when_absent():
     actor, _room, owner, pet = _scene()
     assert not pet.has_component(PetCareComponent)
-    result = PlayWithPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, "play-with", {"pet_id": str(pet.id)})
+    result = execute_handler(
+        PlayWithPetHandler(), _ctx(actor), _cmd(owner.id, "play-with", {"pet_id": str(pet.id)})
     )
     assert result.ok
     assert pet.has_component(PetCareComponent)
@@ -95,8 +96,8 @@ def test_play_with_bootstraps_care_when_absent():
 def test_groom_tidies_and_builds_trust():
     actor, _room, owner, pet = _scene()
     pet.add_component(PetCareComponent(grooming=Meter(value=50.0)))
-    result = GroomPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, "groom", {"pet_id": str(pet.id)})
+    result = execute_handler(
+        GroomPetHandler(), _ctx(actor), _cmd(owner.id, "groom", {"pet_id": str(pet.id)})
     )
     assert result.ok
     assert isinstance(result.events[0], PetGroomedEvent)
@@ -107,8 +108,8 @@ def test_groom_tidies_and_builds_trust():
 
 def test_play_with_rejects_invalid_id():
     actor, _room, owner, _pet = _scene()
-    result = PlayWithPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, "play-with", {"pet_id": "??"})
+    result = execute_handler(
+        PlayWithPetHandler(), _ctx(actor), _cmd(owner.id, "play-with", {"pet_id": "??"})
     )
     assert not result.ok
     assert result.reason == "invalid pet id"
@@ -118,8 +119,8 @@ def test_play_with_rejects_non_pet():
     actor, room, owner, _pet = _scene()
     thing = spawn_entity(actor.world, [IdentityComponent(name="ball", kind="object")])
     room.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), thing.id)
-    result = PlayWithPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, "play-with", {"pet_id": str(thing.id)})
+    result = execute_handler(
+        PlayWithPetHandler(), _ctx(actor), _cmd(owner.id, "play-with", {"pet_id": str(thing.id)})
     )
     assert not result.ok
     assert result.reason == "that is not a pet"
@@ -128,8 +129,8 @@ def test_play_with_rejects_non_pet():
 def test_play_with_rejects_someone_elses_pet():
     actor, room, owner, pet = _scene()
     stranger = _owner(actor.world, room, name="Wick")
-    result = PlayWithPetHandler().execute(
-        _ctx(actor), _cmd(stranger.id, "play-with", {"pet_id": str(pet.id)})
+    result = execute_handler(
+        PlayWithPetHandler(), _ctx(actor), _cmd(stranger.id, "play-with", {"pet_id": str(pet.id)})
     )
     assert not result.ok
     assert result.reason == "that is not your pet"
@@ -137,15 +138,17 @@ def test_play_with_rejects_someone_elses_pet():
 
 def test_play_with_rejects_missing_character():
     actor, _room, _owner, pet = _scene()
-    result = PlayWithPetHandler().execute(
-        _ctx(actor), _cmd("missing", "play-with", {"pet_id": str(pet.id)})
+    result = execute_handler(
+        PlayWithPetHandler(), _ctx(actor), _cmd("missing", "play-with", {"pet_id": str(pet.id)})
     )
     assert not result.ok
 
 
 def test_groom_rejects_invalid_id():
     actor, _room, owner, _pet = _scene()
-    result = GroomPetHandler().execute(_ctx(actor), _cmd(owner.id, "groom", {"pet_id": "??"}))
+    result = execute_handler(
+        GroomPetHandler(), _ctx(actor), _cmd(owner.id, "groom", {"pet_id": "??"})
+    )
     assert not result.ok
     assert result.reason == "invalid pet id"
 
@@ -154,8 +157,8 @@ def test_groom_rejects_non_pet():
     actor, room, owner, _pet = _scene()
     thing = spawn_entity(actor.world, [IdentityComponent(name="post", kind="object")])
     room.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), thing.id)
-    result = GroomPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, "groom", {"pet_id": str(thing.id)})
+    result = execute_handler(
+        GroomPetHandler(), _ctx(actor), _cmd(owner.id, "groom", {"pet_id": str(thing.id)})
     )
     assert not result.ok
     assert result.reason == "that is not a pet"
@@ -164,8 +167,8 @@ def test_groom_rejects_non_pet():
 def test_groom_rejects_someone_elses_pet():
     actor, room, owner, pet = _scene()
     stranger = _owner(actor.world, room, name="Wick")
-    result = GroomPetHandler().execute(
-        _ctx(actor), _cmd(stranger.id, "groom", {"pet_id": str(pet.id)})
+    result = execute_handler(
+        GroomPetHandler(), _ctx(actor), _cmd(stranger.id, "groom", {"pet_id": str(pet.id)})
     )
     assert not result.ok
     assert result.reason == "that is not your pet"
@@ -173,8 +176,8 @@ def test_groom_rejects_someone_elses_pet():
 
 def test_groom_rejects_missing_character():
     actor, _room, _owner, pet = _scene()
-    result = GroomPetHandler().execute(
-        _ctx(actor), _cmd("missing", "groom", {"pet_id": str(pet.id)})
+    result = execute_handler(
+        GroomPetHandler(), _ctx(actor), _cmd("missing", "groom", {"pet_id": str(pet.id)})
     )
     assert not result.ok
 

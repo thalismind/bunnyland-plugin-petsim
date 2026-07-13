@@ -13,6 +13,7 @@ from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
 from bunnyland.foundation.consumables.components import ConsumableComponent, FoodComponent
 from bunnyland.foundation.social.mechanics import bond_between
+from conftest import execute_handler
 
 from bunnyland_petsim import PetComponent, PetFedEvent, spawn_pet
 from bunnyland_petsim.bonding import FeedPetHandler, loyalty_band
@@ -63,8 +64,10 @@ def test_feeding_raises_happiness_and_bond_and_consumes_food():
     before = pet.get_component(PetComponent).happiness
     food = _food(actor, owner, satiety=12.0)
 
-    result = FeedPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, {"pet_id": str(pet.id), "item_id": str(food.id)})
+    result = execute_handler(
+        FeedPetHandler(),
+        _ctx(actor),
+        _cmd(owner.id, {"pet_id": str(pet.id), "item_id": str(food.id)}),
     )
 
     assert result.ok
@@ -81,8 +84,10 @@ def test_happiness_clamps_at_maximum():
     pet = spawn_pet(actor.world, room_id=room.id, owner_id=owner.id)
     food = _food(actor, owner, satiety=1000.0)
 
-    FeedPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, {"pet_id": str(pet.id), "item_id": str(food.id)})
+    execute_handler(
+        FeedPetHandler(),
+        _ctx(actor),
+        _cmd(owner.id, {"pet_id": str(pet.id), "item_id": str(food.id)}),
     )
 
     assert pet.get_component(PetComponent).happiness == 100.0
@@ -93,8 +98,10 @@ def test_multi_use_food_survives_one_feeding():
     pet = spawn_pet(actor.world, room_id=room.id, owner_id=owner.id)
     food = _food(actor, owner, uses=3)
 
-    FeedPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, {"pet_id": str(pet.id), "item_id": str(food.id)})
+    execute_handler(
+        FeedPetHandler(),
+        _ctx(actor),
+        _cmd(owner.id, {"pet_id": str(pet.id), "item_id": str(food.id)}),
     )
 
     assert actor.world.has_entity(food.id)
@@ -107,8 +114,10 @@ def test_feed_rejects_non_food_item():
     stick = spawn_entity(actor.world, [IdentityComponent(name="stick", kind="item")])
     owner.add_relationship(Contains(mode=ContainmentMode.INVENTORY), stick.id)
 
-    result = FeedPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, {"pet_id": str(pet.id), "item_id": str(stick.id)})
+    result = execute_handler(
+        FeedPetHandler(),
+        _ctx(actor),
+        _cmd(owner.id, {"pet_id": str(pet.id), "item_id": str(stick.id)}),
     )
 
     assert not result.ok
@@ -121,8 +130,10 @@ def test_feed_rejects_non_pet_target():
     room.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), crate.id)
     food = _food(actor, owner)
 
-    result = FeedPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, {"pet_id": str(crate.id), "item_id": str(food.id)})
+    result = execute_handler(
+        FeedPetHandler(),
+        _ctx(actor),
+        _cmd(owner.id, {"pet_id": str(crate.id), "item_id": str(food.id)}),
     )
 
     assert not result.ok
@@ -133,8 +144,10 @@ def test_feed_rejects_missing_food():
     actor, room, owner = _scene()
     pet = spawn_pet(actor.world, room_id=room.id, owner_id=owner.id)
 
-    result = FeedPetHandler().execute(
-        _ctx(actor), _cmd(owner.id, {"pet_id": str(pet.id), "item_id": "entity_9999"})
+    result = execute_handler(
+        FeedPetHandler(),
+        _ctx(actor),
+        _cmd(owner.id, {"pet_id": str(pet.id), "item_id": "entity_9999"}),
     )
 
     assert not result.ok

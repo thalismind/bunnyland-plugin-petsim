@@ -24,22 +24,21 @@ from bunnyland.core import (
     ContainmentMode,
     Contains,
     ExitTo,
-    remove_from_container,
 )
 from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
 from bunnyland.core.commands import Lane, SubmittedCommand
-from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import EventVisibility
 from bunnyland.core.handlers import (
     HandlerContext,
     HandlerResult,
-    ok,
+    planned,
     rejected,
     require_character,
     require_reachable_entity,
 )
+from bunnyland.core.mutations import AddEdge, MutationPlan, RemoveEdge, SetComponent
 from bunnyland.foundation.meters.mechanics import Meter, band, changed
-from bunnyland.foundation.social.mechanics import adjust_bond
+from bunnyland.foundation.social.mechanics import adjusted_bond
 from pydantic.dataclasses import dataclass
 from relics import Component, Edge, Entity, EntityId, World
 
@@ -146,10 +145,15 @@ class RideHandler:
         if mount_of(ctx.world, character_id) is not None:
             return rejected("you are already riding")
 
-        set_rider(mount, character_id, since_epoch=ctx.epoch)
-        bond = adjust_bond(ctx.world, mount_id, character_id, {"trust": RIDE_TRUST})
+        bond = adjusted_bond(ctx.world, mount_id, character_id, {"trust": RIDE_TRUST})
         room = room_of(ctx.world, character_id)
-        return ok(
+        return planned(
+            MutationPlan(
+                (
+                    AddEdge(mount_id, character_id, RiddenBy(since_epoch=ctx.epoch)),
+                    AddEdge(mount_id, character_id, bond),
+                )
+            ),
             MountedEvent(
                 **ctx.event_base(
                     visibility=EventVisibility.ROOM,
@@ -160,7 +164,7 @@ class RideHandler:
                     rider_id=str(character_id),
                     trust=bond.trust,
                 )
-            )
+            ),
         )
 
 
@@ -176,9 +180,9 @@ class DismountHandler:
         mount = mount_of(ctx.world, character_id)
         if mount is None:
             return rejected("you are not riding anything")
-        clear_rider(mount)
         room = room_of(ctx.world, character_id)
-        return ok(
+        return planned(
+            MutationPlan((RemoveEdge(mount.id, character_id, RiddenBy),)),
             DismountedEvent(
                 **ctx.event_base(
                     visibility=EventVisibility.ROOM,
@@ -188,13 +192,19 @@ class DismountHandler:
                     mount_id=str(mount.id),
                     rider_id=str(character_id),
                 )
-            )
+            ),
         )
 
 
-def _relocate(world: World, entity: Entity, destination: Entity) -> None:
-    remove_from_container(world, entity.id)
-    destination.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), entity.id)
+def _relocation_operations(world: World, entity: Entity, destination: Entity):
+    current = room_of(world, entity.id)
+    operations = []
+    if current is not None:
+        operations.append(RemoveEdge(current.id, entity.id, Contains))
+    operations.append(
+        AddEdge(destination.id, entity.id, Contains(mode=ContainmentMode.ROOM_CONTENT))
+    )
+    return operations
 
 
 def _exit_toward(room: Entity, direction: str | None):
@@ -239,8 +249,6 @@ class RideToHandler:
             if destination_id is None or not ctx.world.has_entity(destination_id):
                 break
             destination = ctx.world.get_entity(destination_id)
-            _relocate(ctx.world, character, destination)
-            _relocate(ctx.world, mount, destination)
             stamina = changed(stamina, STAMINA_PER_HOP)
             current_room = destination
             chosen_direction = edge_direction
@@ -249,8 +257,13 @@ class RideToHandler:
         if hops == 0:
             return rejected("no matching exit")
 
-        replace_component(mount, replace(component, stamina=stamina))
-        return ok(
+        operations = [
+            *_relocation_operations(ctx.world, character, current_room),
+            *_relocation_operations(ctx.world, mount, current_room),
+            SetComponent(mount.id, replace(component, stamina=stamina)),
+        ]
+        return planned(
+            MutationPlan(tuple(operations)),
             MountTraveledEvent(
                 **ctx.event_base(
                     visibility=EventVisibility.ROOM,
@@ -264,7 +277,7 @@ class RideToHandler:
                     hops=hops,
                     direction=chosen_direction,
                 )
-            )
+            ),
         )
 
 

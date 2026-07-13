@@ -11,6 +11,7 @@ from bunnyland.core import (
 )
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
+from conftest import execute_handler
 
 from bunnyland_petsim import PetComponent, PetTrickEvent, is_threat, perceived_threats, spawn_pet
 from bunnyland_petsim.tricks import TrickHandler
@@ -53,8 +54,8 @@ def test_trick_performs_known_trick_and_raises_happiness():
     pet = spawn_pet(actor.world, room_id=room.id, owner_id=owner.id, tricks=("sit",))
     before = pet.get_component(PetComponent).happiness
 
-    result = TrickHandler().execute(
-        _ctx(actor), _cmd(owner.id, {"pet_id": str(pet.id), "trick": "sit"})
+    result = execute_handler(
+        TrickHandler(), _ctx(actor), _cmd(owner.id, {"pet_id": str(pet.id), "trick": "sit"})
     )
 
     assert result.ok
@@ -68,8 +69,8 @@ def test_trick_rejects_unknown_trick():
     actor, room, owner = _scene()
     pet = spawn_pet(actor.world, room_id=room.id, owner_id=owner.id, tricks=("sit",))
 
-    result = TrickHandler().execute(
-        _ctx(actor), _cmd(owner.id, {"pet_id": str(pet.id), "trick": "backflip"})
+    result = execute_handler(
+        TrickHandler(), _ctx(actor), _cmd(owner.id, {"pet_id": str(pet.id), "trick": "backflip"})
     )
 
     assert not result.ok
@@ -84,8 +85,8 @@ def test_trick_rejects_non_owner():
     room.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), other.id)
     pet = spawn_pet(actor.world, room_id=room.id, owner_id=owner.id, tricks=("sit",))
 
-    result = TrickHandler().execute(
-        _ctx(actor), _cmd(other.id, {"pet_id": str(pet.id), "trick": "sit"})
+    result = execute_handler(
+        TrickHandler(), _ctx(actor), _cmd(other.id, {"pet_id": str(pet.id), "trick": "sit"})
     )
 
     assert not result.ok

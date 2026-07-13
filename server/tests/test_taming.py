@@ -11,6 +11,7 @@ from bunnyland.core import (
 )
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
+from conftest import execute_handler
 
 from bunnyland_petsim import (
     PetComponent,
@@ -53,13 +54,15 @@ def test_taming_takes_multiple_attempts():
     creature = spawn_tameable(actor.world, room_id=room.id, species="fox", tame_threshold=0.6)
     handler = TameHandler()
 
-    first = handler.execute(_ctx(actor), _cmd(tamer.id, {"creature_id": str(creature.id)}))
+    first = execute_handler(handler, _ctx(actor), _cmd(tamer.id, {"creature_id": str(creature.id)}))
     assert first.ok
     assert first.events[0].tamed is False
     assert creature.has_component(TameableComponent)
     assert not creature.has_component(PetComponent)
 
-    second = handler.execute(_ctx(actor), _cmd(tamer.id, {"creature_id": str(creature.id)}))
+    second = execute_handler(
+        handler, _ctx(actor), _cmd(tamer.id, {"creature_id": str(creature.id)})
+    )
     assert second.ok
     event = second.events[0]
     assert isinstance(event, PetTamedEvent)
@@ -75,7 +78,9 @@ def test_taming_transfers_tricks_to_pet():
     creature = spawn_tameable(
         actor.world, room_id=room.id, tame_threshold=0.1, tricks=("sit", "roll")
     )
-    result = TameHandler().execute(_ctx(actor), _cmd(tamer.id, {"creature_id": str(creature.id)}))
+    result = execute_handler(
+        TameHandler(), _ctx(actor), _cmd(tamer.id, {"creature_id": str(creature.id)})
+    )
     assert result.events[0].tamed is True
     assert creature.get_component(PetComponent).tricks == ("sit", "roll")
 
@@ -85,8 +90,8 @@ def test_skittish_creature_needs_more_attempts():
     creature = spawn_tameable(actor.world, room_id=room.id, tame_threshold=0.6, skittish=True)
     handler = TameHandler()
     # Skittish step is 0.17, so two attempts (0.34) is not enough for a 0.6 threshold.
-    handler.execute(_ctx(actor), _cmd(tamer.id, {"creature_id": str(creature.id)}))
-    handler.execute(_ctx(actor), _cmd(tamer.id, {"creature_id": str(creature.id)}))
+    execute_handler(handler, _ctx(actor), _cmd(tamer.id, {"creature_id": str(creature.id)}))
+    execute_handler(handler, _ctx(actor), _cmd(tamer.id, {"creature_id": str(creature.id)}))
     assert creature.has_component(TameableComponent)
 
 
@@ -95,7 +100,9 @@ def test_tame_rejects_non_tameable_target():
     rock = spawn_entity(actor.world, [IdentityComponent(name="rock", kind="item")])
     room.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), rock.id)
 
-    result = TameHandler().execute(_ctx(actor), _cmd(tamer.id, {"creature_id": str(rock.id)}))
+    result = execute_handler(
+        TameHandler(), _ctx(actor), _cmd(tamer.id, {"creature_id": str(rock.id)})
+    )
 
     assert not result.ok
     assert result.reason == "that creature cannot be tamed"
@@ -106,7 +113,9 @@ def test_tame_rejects_unreachable_creature():
     elsewhere = spawn_entity(actor.world, [RoomComponent(title="Far")])
     creature = spawn_tameable(actor.world, room_id=elsewhere.id)
 
-    result = TameHandler().execute(_ctx(actor), _cmd(tamer.id, {"creature_id": str(creature.id)}))
+    result = execute_handler(
+        TameHandler(), _ctx(actor), _cmd(tamer.id, {"creature_id": str(creature.id)})
+    )
 
     assert not result.ok
     assert result.reason == "that creature is not here"
@@ -115,7 +124,7 @@ def test_tame_rejects_unreachable_creature():
 def test_tame_rejects_invalid_creature_id():
     actor, _room, tamer = _scene()
 
-    result = TameHandler().execute(_ctx(actor), _cmd(tamer.id, {"creature_id": "???"}))
+    result = execute_handler(TameHandler(), _ctx(actor), _cmd(tamer.id, {"creature_id": "???"}))
 
     assert not result.ok
     assert result.reason == "invalid creature id"

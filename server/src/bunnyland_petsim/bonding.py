@@ -13,18 +13,18 @@ from dataclasses import replace
 from bunnyland.core import Contains, container_of
 from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
 from bunnyland.core.commands import Lane, SubmittedCommand
-from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import EventVisibility
 from bunnyland.core.handlers import (
     HandlerContext,
     HandlerResult,
-    ok,
+    planned,
     rejected,
     require_character,
     require_reachable_entity,
 )
+from bunnyland.core.mutations import AddEdge, DeleteEntity, MutationPlan, RemoveEdge, SetComponent
 from bunnyland.foundation.consumables.components import ConsumableComponent, FoodComponent
-from bunnyland.foundation.social.mechanics import adjust_bond, bond_between
+from bunnyland.foundation.social.mechanics import adjusted_bond, bond_between
 
 from .components import PetComponent, clamp_happiness
 from .events import PetFedEvent
@@ -35,19 +35,19 @@ FEED_AFFINITY = 0.15
 FEED_TRUST = 0.1
 
 
-def _consume_one_use(ctx: HandlerContext, item) -> None:
+def _consume_one_use(ctx: HandlerContext, item) -> tuple[object, ...]:
     """Spend one use of a consumable food item; destroy it when uses run out."""
     if not item.has_component(ConsumableComponent):
-        return
+        return ()
     consumable = item.get_component(ConsumableComponent)
     remaining = consumable.current_uses - 1
     if remaining <= 0:
         holder_id = container_of(item)
         if holder_id is not None and ctx.world.has_entity(holder_id):
-            ctx.world.get_entity(holder_id).remove_relationship(Contains, item.id)
-        ctx.world.remove(item.id)
+            return (RemoveEdge(holder_id, item.id, Contains), DeleteEntity(item.id))
+        return (DeleteEntity(item.id),)
     else:
-        replace_component(item, replace(consumable, current_uses=remaining))
+        return (SetComponent(item.id, replace(consumable, current_uses=remaining)),)
 
 
 class FeedPetHandler:
@@ -87,14 +87,19 @@ class FeedPetHandler:
         food = item.get_component(FoodComponent)
         component = pet.get_component(PetComponent)
         happiness = clamp_happiness(component.happiness + food.satiety)
-        replace_component(pet, replace(component, happiness=happiness))
-        bond = adjust_bond(
+        bond = adjusted_bond(
             ctx.world, pet_id, character_id, {"affinity": FEED_AFFINITY, "trust": FEED_TRUST}
         )
-        _consume_one_use(ctx, item)
 
         room = room_of(ctx.world, character_id)
-        return ok(
+        return planned(
+            MutationPlan(
+                (
+                    SetComponent(pet_id, replace(component, happiness=happiness)),
+                    AddEdge(pet_id, character_id, bond),
+                    *_consume_one_use(ctx, item),
+                )
+            ),
             PetFedEvent(
                 **ctx.event_base(
                     visibility=EventVisibility.ROOM,
@@ -106,7 +111,7 @@ class FeedPetHandler:
                     happiness=happiness,
                     affinity=bond.affinity,
                 )
-            )
+            ),
         )
 
 

@@ -14,6 +14,7 @@ from bunnyland.core import (
 from bunnyland.core.commands import CommandCost, Lane, build_submitted_command
 from bunnyland.core.handlers import HandlerContext
 from bunnyland.foundation.social.mechanics import bond_between
+from conftest import execute_handler
 
 from bunnyland_petsim import (
     MountComponent,
@@ -64,7 +65,9 @@ def _scene():
 
 def test_train_grants_xp_and_bonds():
     actor, _room, owner, pet = _scene()
-    result = TrainHandler().execute(_ctx(actor), _cmd(owner.id, "train", {"pet_id": str(pet.id)}))
+    result = execute_handler(
+        TrainHandler(), _ctx(actor), _cmd(owner.id, "train", {"pet_id": str(pet.id)})
+    )
     assert result.ok
     event = result.events[0]
     assert isinstance(event, PetTrainedEvent)
@@ -79,7 +82,8 @@ def test_train_grants_xp_and_bonds():
 
 def test_train_accepts_a_named_discipline():
     actor, _room, owner, pet = _scene()
-    result = TrainHandler().execute(
+    result = execute_handler(
+        TrainHandler(),
         _ctx(actor),
         _cmd(owner.id, "train", {"pet_id": str(pet.id), "discipline": "agility"}),
     )
@@ -90,7 +94,9 @@ def test_train_accepts_a_named_discipline():
 def test_train_levels_up_over_the_threshold():
     actor, _room, owner, pet = _scene()
     pet.add_component(TrainingComponent(level=1, xp=8.0, xp_per_level=10.0))
-    result = TrainHandler().execute(_ctx(actor), _cmd(owner.id, "train", {"pet_id": str(pet.id)}))
+    result = execute_handler(
+        TrainHandler(), _ctx(actor), _cmd(owner.id, "train", {"pet_id": str(pet.id)})
+    )
     assert result.ok
     assert result.events[0].leveled_up
     training = pet.get_component(TrainingComponent)
@@ -101,7 +107,9 @@ def test_train_levels_up_over_the_threshold():
 def test_train_graduates_a_pet_into_a_mount():
     actor, _room, owner, pet = _scene()
     pet.add_component(TrainingComponent(level=MOUNT_TRAINING_LEVEL - 1, xp=8.0, xp_per_level=10.0))
-    result = TrainHandler().execute(_ctx(actor), _cmd(owner.id, "train", {"pet_id": str(pet.id)}))
+    result = execute_handler(
+        TrainHandler(), _ctx(actor), _cmd(owner.id, "train", {"pet_id": str(pet.id)})
+    )
     assert result.ok
     event = result.events[0]
     assert event.became_mount
@@ -113,7 +121,9 @@ def test_train_of_existing_mount_does_not_re_add_component():
     actor, _room, owner, pet = _scene()
     pet.add_component(TrainingComponent(level=MOUNT_TRAINING_LEVEL, xp=0.0))
     pet.add_component(MountComponent(speed=5))
-    result = TrainHandler().execute(_ctx(actor), _cmd(owner.id, "train", {"pet_id": str(pet.id)}))
+    result = execute_handler(
+        TrainHandler(), _ctx(actor), _cmd(owner.id, "train", {"pet_id": str(pet.id)})
+    )
     assert result.ok
     assert not result.events[0].became_mount
     assert pet.get_component(MountComponent).speed == 5
@@ -121,7 +131,7 @@ def test_train_of_existing_mount_does_not_re_add_component():
 
 def test_train_rejects_invalid_pet_id():
     actor, _room, owner, _pet = _scene()
-    result = TrainHandler().execute(_ctx(actor), _cmd(owner.id, "train", {"pet_id": "??"}))
+    result = execute_handler(TrainHandler(), _ctx(actor), _cmd(owner.id, "train", {"pet_id": "??"}))
     assert not result.ok
     assert result.reason == "invalid pet id"
 
@@ -130,7 +140,9 @@ def test_train_rejects_non_pet():
     actor, room, owner, _pet = _scene()
     rock = spawn_entity(actor.world, [IdentityComponent(name="rock", kind="object")])
     room.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), rock.id)
-    result = TrainHandler().execute(_ctx(actor), _cmd(owner.id, "train", {"pet_id": str(rock.id)}))
+    result = execute_handler(
+        TrainHandler(), _ctx(actor), _cmd(owner.id, "train", {"pet_id": str(rock.id)})
+    )
     assert not result.ok
     assert result.reason == "that is not a pet"
 
@@ -138,8 +150,8 @@ def test_train_rejects_non_pet():
 def test_train_rejects_someone_elses_pet():
     actor, room, owner, pet = _scene()
     stranger = _owner(actor.world, room, name="Wick")
-    result = TrainHandler().execute(
-        _ctx(actor), _cmd(stranger.id, "train", {"pet_id": str(pet.id)})
+    result = execute_handler(
+        TrainHandler(), _ctx(actor), _cmd(stranger.id, "train", {"pet_id": str(pet.id)})
     )
     assert not result.ok
     assert result.reason == "that is not your pet"
@@ -147,8 +159,8 @@ def test_train_rejects_someone_elses_pet():
 
 def test_train_rejects_missing_character():
     actor, _room, _owner, pet = _scene()
-    result = TrainHandler().execute(
-        _ctx(actor), _cmd("does-not-exist", "train", {"pet_id": str(pet.id)})
+    result = execute_handler(
+        TrainHandler(), _ctx(actor), _cmd("does-not-exist", "train", {"pet_id": str(pet.id)})
     )
     assert not result.ok
 

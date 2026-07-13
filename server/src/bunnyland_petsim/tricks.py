@@ -13,16 +13,16 @@ from dataclasses import replace
 from bunnyland.core import IdentityComponent
 from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
 from bunnyland.core.commands import Lane, SubmittedCommand
-from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import EventVisibility
 from bunnyland.core.handlers import (
     HandlerContext,
     HandlerResult,
-    ok,
+    planned,
     rejected,
     require_character,
     require_reachable_entity,
 )
+from bunnyland.core.mutations import MutationPlan, SetComponent
 from relics import Entity, World
 
 from .components import PetComponent, clamp_happiness
@@ -131,9 +131,9 @@ class TrickHandler:
             return rejected("your pet does not know that trick")
 
         happiness = clamp_happiness(component.happiness + TRICK_HAPPINESS)
-        replace_component(pet, replace(component, happiness=happiness))
         room = room_of(ctx.world, pet_id)
-        return ok(
+        return planned(
+            MutationPlan((SetComponent(pet_id, replace(component, happiness=happiness)),)),
             PetTrickEvent(
                 **ctx.event_base(
                     visibility=EventVisibility.ROOM,
@@ -143,7 +143,7 @@ class TrickHandler:
                     pet_id=str(pet_id),
                     trick=trick,
                 )
-            )
+            ),
         )
 
 

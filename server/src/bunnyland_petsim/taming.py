@@ -15,15 +15,16 @@ from bunnyland.core.events import EventVisibility
 from bunnyland.core.handlers import (
     HandlerContext,
     HandlerResult,
-    ok,
+    planned,
     rejected,
     require_character,
     require_reachable_entity,
 )
-from bunnyland.foundation.social.mechanics import adjust_bond, bond_between
+from bunnyland.core.mutations import AddEdge, MutationPlan, RemoveComponent, SetComponent
+from bunnyland.foundation.social.mechanics import adjusted_bond, bond_between
 
 from .components import PetComponent, TameableComponent
-from .edges import set_owner
+from .edges import Follows
 from .events import PetTamedEvent
 from .knowledge import known_species_bonus
 from .spatial import room_of
@@ -59,17 +60,26 @@ class TameHandler:
         step = SKITTISH_AFFINITY_STEP if tameable.skittish else TAME_AFFINITY_STEP
         # Optional loresim synergy: knowing the species eases the taming (0.0 sans loresim).
         step += known_species_bonus(ctx.world, character_id, tameable.species)
-        bond = adjust_bond(
+        bond = adjusted_bond(
             ctx.world, creature_id, character_id, {"affinity": step, "trust": step / 2}
         )
         tamed = bond.affinity >= tameable.tame_threshold
+        operations = [AddEdge(creature_id, character_id, bond)]
         if tamed:
-            creature.remove_component(TameableComponent)
-            creature.add_component(PetComponent(species=tameable.species, tricks=tameable.tricks))
-            set_owner(creature, character_id, since_epoch=ctx.epoch)
+            operations.extend(
+                (
+                    RemoveComponent(creature_id, TameableComponent),
+                    SetComponent(
+                        creature_id,
+                        PetComponent(species=tameable.species, tricks=tameable.tricks),
+                    ),
+                    AddEdge(creature_id, character_id, Follows(since_epoch=ctx.epoch)),
+                )
+            )
 
         room = room_of(ctx.world, character_id)
-        return ok(
+        return planned(
+            MutationPlan(tuple(operations)),
             PetTamedEvent(
                 **ctx.event_base(
                     visibility=EventVisibility.ROOM,
@@ -81,7 +91,7 @@ class TameHandler:
                     affinity=bond.affinity,
                     species=tameable.species,
                 )
-            )
+            ),
         )
 
 

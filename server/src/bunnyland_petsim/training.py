@@ -14,17 +14,17 @@ from dataclasses import replace
 
 from bunnyland.core.actions import ActionArgument, ActionDefinition, ActionEffort, effort_cost
 from bunnyland.core.commands import Lane, SubmittedCommand
-from bunnyland.core.ecs import replace_component
 from bunnyland.core.events import EventVisibility
 from bunnyland.core.handlers import (
     HandlerContext,
     HandlerResult,
-    ok,
+    planned,
     rejected,
     require_character,
     require_reachable_entity,
 )
-from bunnyland.foundation.social.mechanics import adjust_bond
+from bunnyland.core.mutations import AddEdge, MutationPlan, SetComponent
+from bunnyland.foundation.social.mechanics import adjusted_bond
 from pydantic.dataclasses import dataclass
 from relics import Component
 
@@ -100,25 +100,29 @@ class TrainHandler:
             else TrainingComponent(discipline=discipline)
         )
         training, leveled = _advance(training, TRAIN_XP_STEP)
-        if pet.has_component(TrainingComponent):
-            replace_component(pet, training)
-        else:
-            pet.add_component(training)
-
         became_mount = False
         if training.level >= MOUNT_TRAINING_LEVEL and not pet.has_component(MountComponent):
-            pet.add_component(MountComponent())
             became_mount = True
 
         component = pet.get_component(PetComponent)
-        replace_component(
-            pet,
-            replace(component, happiness=clamp_happiness(component.happiness + TRAIN_HAPPINESS)),
-        )
-        adjust_bond(ctx.world, pet_id, character_id, {"affinity": TRAIN_AFFINITY})
+        bond = adjusted_bond(ctx.world, pet_id, character_id, {"affinity": TRAIN_AFFINITY})
 
         room = room_of(ctx.world, character_id)
-        return ok(
+        operations = [
+            SetComponent(pet_id, training),
+            SetComponent(
+                pet_id,
+                replace(
+                    component,
+                    happiness=clamp_happiness(component.happiness + TRAIN_HAPPINESS),
+                ),
+            ),
+            AddEdge(pet_id, character_id, bond),
+        ]
+        if became_mount:
+            operations.insert(1, SetComponent(pet_id, MountComponent()))
+        return planned(
+            MutationPlan(tuple(operations)),
             PetTrainedEvent(
                 **ctx.event_base(
                     visibility=EventVisibility.ROOM,
@@ -131,7 +135,7 @@ class TrainHandler:
                     leveled_up=leveled,
                     became_mount=became_mount,
                 )
-            )
+            ),
         )
 
 
