@@ -29,7 +29,6 @@ from bunnyland_petsim import (
     spawn_pet,
 )
 from bunnyland_petsim.components import STAY
-from bunnyland_petsim.incidents import _room_by_id
 
 
 def _room(world, title="Square"):
@@ -45,18 +44,19 @@ def _owner(world, room, name="Rhea"):
 
 
 def _incident(world, room, kind="hostile_encounter", resolved=None):
-    return spawn_entity(
+    incident = spawn_entity(
         world,
         [
             IncidentComponent(
                 kind=kind,
                 budget_spent=1.0,
                 started_at_epoch=0,
-                room_id=str(room.id),
                 resolved_at_epoch=resolved,
             )
         ],
     )
+    room.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), incident.id)
+    return incident
 
 
 # --------------------------------------------------------------------------------------
@@ -142,9 +142,9 @@ def test_staying_pet_is_not_panicked():
     assert StampedeConsequence().process(actor.world, 10) == []
 
 
-def test_incident_pointing_at_a_vanished_room_is_ignored():
+def test_incident_contained_by_a_non_room_is_ignored():
     actor = WorldActor()
-    room = _room(actor.world)
+    container = spawn_entity(actor.world, [IdentityComponent(name="crate", kind="item")])
     incident = spawn_entity(
         actor.world,
         [
@@ -152,15 +152,11 @@ def test_incident_pointing_at_a_vanished_room_is_ignored():
                 kind="barbarian_raid",
                 budget_spent=1.0,
                 started_at_epoch=0,
-                room_id="not-a-real-id",
             )
         ],
     )
-    assert incident is not None
+    container.add_relationship(Contains(mode=ContainmentMode.ROOM_CONTENT), incident.id)
     assert StampedeConsequence().process(actor.world, 10) == []
-    # And the helper is defensive about junk ids too.
-    assert _room_by_id(actor.world, "not-a-real-id") is None
-    assert _room_by_id(actor.world, str(room.id)) is not None
 
 
 # --------------------------------------------------------------------------------------

@@ -75,9 +75,9 @@ class StampedeConsequence:
             incident = incident_entity.get_component(IncidentComponent)
             if incident.resolved_at_epoch is not None:
                 continue
-            if incident.kind not in THREAT_INCIDENT_KINDS or incident.room_id is None:
+            if incident.kind not in THREAT_INCIDENT_KINDS:
                 continue
-            room = room_of(world, incident_entity.id) or _room_by_id(world, incident.room_id)
+            room = room_of(world, incident_entity.id)
             if room is None:
                 continue
             pets = _panicking_pets(world, room)
@@ -119,16 +119,6 @@ class StampedeConsequence:
                     )
                 )
         return events
-
-
-def _room_by_id(world: World, room_id: str) -> Entity | None:
-    from bunnyland.core.ecs import parse_entity_id
-
-    parsed = parse_entity_id(room_id)
-    if parsed is None or not world.has_entity(parsed):
-        return None
-    return world.get_entity(parsed)
-
 
 __all__ = [
     "STAMPEDE_HAPPINESS_LOSS",
